@@ -1,22 +1,6 @@
 use std::thread;
 use std::sync::{Mutex, Arc}; //mutex para la exclusión mutua, arc para que la transición sea atómica 
 
-//Estas dos structurs no se si la vamos a poder usar, las saque del doc de rust
-
-struct Transicion {
-    nombre:str;
-    entradas: Vec<Plaza>;
-    salidas: Vec<Plaza>;
-}
-
-impl Transicion {
-    fn new(nombre: &str, entradas: Vec<Plaza>, salidas: Vec<Plaza>) -> Transicion {
-        nombre:nombre.to_string,
-        entradas: entradas,
-        salidas: salidas,
-    }
-}
-
 //https://alecmooreutdms.wordpress.com/2015/10/01/petri-nets/ -> explicación del problema
 //https://doc.rust-lang.org/1.2.0/book/dining-philosophers.html -> documentación de rust
 
@@ -81,48 +65,49 @@ macro_rules! trans {
 */
 
 macro_rules! trans {
-    ($($empieza),*,$($comiendo),*) => {
-        let mut empieza = Vec::new();
-        let mut comiendo = Vec::new();
-        let mut transiciones = Vec::new();
+    ($($empieza: tt),*,$($comiendo: tt),*) => {
+        {
+            let mut empieza = Vec::new();
+            let mut comiendo = Vec::new();
+            let mut transiciones = Vec::new();
 
-        $(
-            empieza.push($empieza);
-            comiendo.push($comiendo);
-        )*
-        for aux in &comiendo {
-            empieza.push(val);
+            $(
+                empieza.push($empieza);
+                comiendo.push($comiendo);
+            )*
+            for aux in &comiendo {
+                empieza.push(val);
+            }
+            transiciones = empieza
         }
-        transiciones = empieza
-    }
+    };
 }
 
 macro_rules! arc {
-    ($($k: expr => $v: exp),*) => {
+    ($($k:expr => $v:expr),*) => {
         {
             let mut map = HashMap::new();
             $(
                 map.insert($k,$v);
-            )*
+            )
             map
         }
-    }
+    };
 }
 
 macro_rules! matriz_incidencia {
-    ($plazas: expr, $transiciones: expr, $arcos: expr) => {
+    ($arc_in:expr,$arc_out:expr,$plazas:expr,$transiciones:expr) => {
         {
-            let mut matriz [plazas.len()][transiciones.len()];
-            for p in plazas {
-                for t in transiciones {
-                    matriz[p][t] = 0;                 
-                }
-            }
-
+            let mut matriz[plazas.len()][transiciones.len()];
+            for p in plazas.len()
+                for t in transiciones.len()
+                    matriz[p][t]=0;
+        
         }
     }
 }
 
+/*
 macro_rules! init {
 
 }
@@ -146,11 +131,35 @@ fn marcas() -> Vec<i32> {
 fn habilitadas() -> Vec<trans> {
 
 }
-
+*/
 fn main() {
-    let p = place!("p0","p1","p2","p3","p4")
+    let arc_int = arc!(  
+        0   => vec![0,4],
+        1   => vec![1],
+        2   => vec![0],
+        3   => vec![0,6],
+        4   => vec![4],
+        5   => vec![5],
+        6   => vec![7],
+        7   => vec![6],
+        8   => vec![6,2],
+        9   => vec![3],
+        10  => vec![2],
+        11  => vec![4,2]
+    );
 
-    while(!p.is_empty()) {
-        println!(p.pop())
-    }
+    let arc_out = arc!( 
+            0   => vec![1],
+            1   => vec![0,2,3],
+            2   => vec![9],
+            3   => vec![8,10,11],
+            4   => vec![5],
+            5   => vec![0,5,11],
+            6   => vec![6],
+            7   => vec![3,8,7]
+        );
+
+    println!("{:?}",arc_int.get(&11).unwrap());
+    println!("{:?}",arc_out.get(&1).unwrap());
+    
 }
