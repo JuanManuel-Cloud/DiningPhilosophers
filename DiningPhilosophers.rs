@@ -3,14 +3,18 @@ use std::sync::{Mutex, Arc}; //mutex para la exclusión mutua, arc para que la t
 
 //Estas dos structurs no se si la vamos a poder usar, las saque del doc de rust
 
-struct Filosofo {
-    nombre: String,
-    izq: usize, //es un entero sin signo, su tamaño depende de la arquitectura del SO, en mi caso 64bits, por ende u64
-    der: usize, //de esta manera te da la garantía que va a ser lo suficientemente grande para almacenar cualquier puntero
+struct Transicion {
+    nombre:str;
+    entradas: Vec<Plaza>;
+    salidas: Vec<Plaza>;
 }
 
-struct Mesa {
-    tenedores: Vec<Mutex<()>>, //es el recurso compartido, por ende va a ser un vector de mutex
+impl Transicion {
+    fn new(nombre: &str, entradas: Vec<Plaza>, salidas: Vec<Plaza>) -> Transicion {
+        nombre:nombre.to_string,
+        entradas: entradas,
+        salidas: salidas,
+    }
 }
 
 //https://alecmooreutdms.wordpress.com/2015/10/01/petri-nets/ -> explicación del problema
@@ -20,17 +24,103 @@ struct Mesa {
 //por lo que la cantidad de tokens para poder comer es 2.
 
 //Vamos a tener que usar un mapa para decir la plaza y la cantidad de tokens que tiene 
+//otro mapa vamos a tener los arcos que van de las transiciones a las plazas o de las plazas a las transiciones, en función de eso podemos
+//ir diciendo si está o no sensibilizada una determianada transición, y hacer un disparo de una transición y hacer que se muevan los tokens.
 
-macro_rules! place {
+/*
+MAP EXAMPLE
 
+macro_rules! my_map {
+    ($($k:expr => $v:expr),*) => {
+        {
+            let mut map = HashMap::new();
+            $(
+                map.insert($k,$v);
+            )*
+            map
+        }
+    };
 }
 
-macro_rules! trans {
+fn main() {
 
+    let m = my_map!("coco" => vec![2,1],
+                    "luis" => vec![3],
+                    "ana"  => vec![6,5,72]);
+    println!("{:?}",m.get("coco").unwrap());
+
+}
+*/
+
+//no se bien que es el tipo tt, lo usan en la macro de println! asi que me pareció oportuno xD.
+//te dejo un link por si lo entendes: https://stackoverflow.com/questions/40302026/what-does-the-tt-metavariable-type-mean-in-rust-macros
+macro_rules! place { 
+    ($($plaza: tt),*) => {
+        {
+            let mut plazas = Vec::new();
+            $(
+                plazas.push($plaza);
+            )*
+            plazas
+        }  
+    };
+}
+
+/*
+macro_rules! trans {
+    ($($transicion: tt),*) => {
+        {
+            let mut transiciones = Vec::new();
+            $(
+                transiciones.push($transicion);
+            )*
+            transiciones
+        }
+    };    
+}
+*/
+
+macro_rules! trans {
+    ($($empieza),*,$($comiendo),*) => {
+        let mut empieza = Vec::new();
+        let mut comiendo = Vec::new();
+        let mut transiciones = Vec::new();
+
+        $(
+            empieza.push($empieza);
+            comiendo.push($comiendo);
+        )*
+        for aux in &comiendo {
+            empieza.push(val);
+        }
+        transiciones = empieza
+    }
 }
 
 macro_rules! arc {
+    ($($k: expr => $v: exp),*) => {
+        {
+            let mut map = HashMap::new();
+            $(
+                map.insert($k,$v);
+            )*
+            map
+        }
+    }
+}
 
+macro_rules! matriz_incidencia {
+    ($plazas: expr, $transiciones: expr, $arcos: expr) => {
+        {
+            let mut matriz [plazas.len()][transiciones.len()];
+            for p in plazas {
+                for t in transiciones {
+                    matriz[p][t] = 0;                 
+                }
+            }
+
+        }
+    }
 }
 
 macro_rules! init {
@@ -58,25 +148,9 @@ fn habilitadas() -> Vec<trans> {
 }
 
 fn main() {
+    let p = place!("p0","p1","p2","p3","p4")
 
-    //creo los 5 tenedores
-
-    let mesa = Arc::new(Mesa { tenedores: vec![
-        Mutex::new(()),
-        Mutex::new(()),
-        Mutex::new(()),
-        Mutex::new(()),
-        Mutex::new(()),
-    ]});
-
-    //creo los 5 filósofos
-
-    let filosofos = vec![
-        Filosofo::new("Judith Butler", 0, 1),
-        Filosofo::new("Gilles Deleuze", 1, 2),
-        Filosofo::new("Karl Marx", 2, 3),
-        Filosofo::new("Emma Goldman", 3, 4),
-        Filosofo::new("Michel Foucault", 0, 4), //notar que en lugar de ir de 4 a 0, toma de 0 a 4, esto es para evitar el deadlock
-    ];
-
+    while(!p.is_empty()) {
+        println!(p.pop())
+    }
 }
