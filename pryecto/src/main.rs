@@ -32,6 +32,8 @@ macro_rules! compreh2 {
 } */
 
 use std::collections::HashMap;
+use rand::{thread_rng, Rng};
+
 
 macro_rules! arc {
     ($($k:expr => $v:expr),*) => {
@@ -87,7 +89,7 @@ macro_rules! matriz_incidencia{
     };
 }
 
-macro_rules! trans_Hab{
+macro_rules! trans_hab{
     ( $id1: ident , $id2: ident) => {
     {   
         let mut grid1 = [true ; 8];
@@ -105,11 +107,97 @@ macro_rules! trans_Hab{
     };
 }
 
-/* fn odd(y:u32) -> bool { y%2 != 0}
+macro_rules! inner_prod {
+    ($mat_inc: ident, $vec: ident) => {
+        {
+            let mut resultado = [0,0,0,0,0,0,0,0,0,0,0,0];
+            for i in 0..12 {
+                let mut elemento = 0;
+                for j in 0..8 {
+                    //println!("matriz = {:?}",$mat_inc[i][j]);
+                    //println!("vector = {:?}",$vec[j]);
+                    elemento += $mat_inc[i][j] * $vec[j];
+                }
+                resultado[i] = elemento;
+            }          
+            resultado
+        }
+    };
+}
 
-fn mayor5(x:u32) -> bool { x>5}
+macro_rules! fire_empieza_n {
+    ($transicion:ident, $trans_hab:ident, $curr_marc:ident, $mat_inc:ident) => {
+        {
+            let mut sensibilizada = false;
+            for i in 0..8 {
+                if $transicion[i] == 1 {
+                    if $trans_hab[i] {
+                        sensibilizada = true;
+                        break;
+                    } else{
+                        break;
+                    }
+                }
+            }
+            if sensibilizada {
+                let aux_marc = $curr_marc; 
+                for i in 0..12 {
+                    //new_marc[i] = $curr_marc[i] + inner_prod!($mat_inc, $transicion)[i];
+                    $curr_marc[i] = aux_marc[i] + inner_prod!($mat_inc, $transicion)[i];
+                }
+                $trans_hab = trans_hab!($mat_inc,$curr_marc);
+            } else {
+                println!("La transición seleccionada no está sensibilizada por lo cuál no se puede disparar");
+            }
+        }
+    };
+}
 
-fn mayory(x:u32, y:u32) -> bool { y>x}  */
+macro_rules! fire_any {
+    ($trans_hab:ident, $curr_marc:ident, $mat_inc:ident) => {
+        {
+            let mut sens: bool = false;
+            let mut num: usize = 0;
+            while !sens {
+                num = thread_rng().gen_range(0..7);
+                if $trans_hab[num] {
+                    sens = true;
+                }
+            }
+
+            let mut transicion = [0,0,0,0,0,0,0,0];
+            for i in 0..8 {
+                if i == num {
+                    transicion[num] = 1;
+                }
+            }
+            println!("Se disparo la transición T {:?}",num);
+            fire_empieza_n!(transicion, $trans_hab, $curr_marc, $mat_inc);
+        }
+    };
+}
+
+fn listar_marc(curr_marc: [i32; 12]) {
+    println!("{:?}",curr_marc);
+}
+fn listar_enables(trans_hab: [bool;8]) {
+    println!("{:?}",trans_hab);
+}
+
+macro_rules! fire_all {
+    ($trans_hab:ident, $curr_marc:ident, $mat_inc:ident) => {
+        {
+            let mut transicion = [0;8];
+            for i in 0..8 {
+                transicion[i] = 1;
+                fire_empieza_n!(transicion, $trans_hab, $curr_marc, $mat_inc);
+                listar_marc($curr_marc);
+                listar_enables($trans_hab);
+                transicion[i] = 0;
+            }
+        }
+    };
+}
 
 fn main() {
     
@@ -146,24 +234,35 @@ fn main() {
     //println!("{:?}",arc_out.get(&1).unwrap());
     //println!("{:?}",grid);
     //let mut grid1 = [0 as u8; 15];
-    
+
     let mat_int = armar_int!(x | x <- [0;11],arc_int);
     let mat_out = armar_out!(y | y <- [0;7],arc_out);
-    println!("Matriz de entradas:");
+    /*println!("Matriz de entradas:");
     for i in 0..12{
         println!("{:?}",mat_int[i]);
     }
     println!("Matriz de salidas:");
     for i in 0..12{
         println!("{:?}",mat_out[i]);
-    }
+    }*/
     let mat_inc = matriz_incidencia!(mat_out,mat_int);
-    println!("Matriz de Incidencia:");
+    /*println!("Matriz de Incidencia:");
     for i in 0..12{
         println!("{:?}",mat_inc[i]);
-    }
-    let mut marc=[1,0,1,1,1,0,0,1,1,0,1,1];
+    }*/
+    let marc=[1,0,1,1,1,0,0,1,1,0,1,1];
+    let mut curr_marc = marc;
+    let mut trans_hab= trans_hab!(mat_inc,marc);
+    //println!("{:?}",trans_hab);
 
-    let mut trans_hab= trans_Hab!(mat_inc,marc);
-    println!("{:?}",trans_hab);
+    //fire_empieza_n!(vect, trans_hab, curr_marc, mat_inc);
+    //println!("initial marc:");
+    //println!("{:?}",marc);
+    //fire_any!(trans_hab, curr_marc, mat_inc);
+    //println!("current marc:");
+    //println!("{:?}",curr_marc);
+    //[1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1]
+    listar_marc(curr_marc);
+    listar_enables(trans_hab);
+    fire_all!(trans_hab, curr_marc, mat_inc);
 }
