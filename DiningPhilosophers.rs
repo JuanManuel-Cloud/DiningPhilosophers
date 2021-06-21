@@ -1,87 +1,37 @@
-use std::thread;
-use std::sync::{Mutex, Arc}; //mutex para la exclusión mutua, arc para que la transición sea atómica 
-
-//https://alecmooreutdms.wordpress.com/2015/10/01/petri-nets/ -> explicación del problema
-//https://doc.rust-lang.org/1.2.0/book/dining-philosophers.html -> documentación de rust
-
-//los filosofos o bien pueden estar pensando (cuando no tienen los dos tenedores), o pueden estar comiendo (cuando tienen los dos tenedores)
-//por lo que la cantidad de tokens para poder comer es 2.
-
-//Vamos a tener que usar un mapa para decir la plaza y la cantidad de tokens que tiene 
-//otro mapa vamos a tener los arcos que van de las transiciones a las plazas o de las plazas a las transiciones, en función de eso podemos
-//ir diciendo si está o no sensibilizada una determianada transición, y hacer un disparo de una transición y hacer que se muevan los tokens.
-
-/*
-MAP EXAMPLE
-
-macro_rules! my_map {
-    ($($k:expr => $v:expr),*) => {
+/* macro_rules! compreh {
+    ( $id1: ident | $id2: ident <- [ $start: expr; $end: expr ] , $cond:expr  ) => {
         {
-            let mut map = HashMap::new();
-            $(
-                map.insert($k,$v);
-            )*
-            map
-        }
-    };
-}
-
-fn main() {
-
-    let m = my_map!("coco" => vec![2,1],
-                    "luis" => vec![3],
-                    "ana"  => vec![6,5,72]);
-    println!("{:?}",m.get("coco").unwrap());
-
-}
-*/
-
-//no se bien que es el tipo tt, lo usan en la macro de println! asi que me pareció oportuno xD.
-//te dejo un link por si lo entendes: https://stackoverflow.com/questions/40302026/what-does-the-tt-metavariable-type-mean-in-rust-macros
-macro_rules! place { 
-    ($($plaza: tt),*) => {
-        {
-            let mut plazas = Vec::new();
-            $(
-                plazas.push($plaza);
-            )*
-            plazas
-        }  
-    };
-}
-
-/*
-macro_rules! trans {
-    ($($transicion: tt),*) => {
-        {
-            let mut transiciones = Vec::new();
-            $(
-                transiciones.push($transicion);
-            )*
-            transiciones
-        }
-    };    
-}
-*/
-
-macro_rules! trans {
-    ($($empieza: tt),*,$($comiendo: tt),*) => {
-        {
-            let mut empieza = Vec::new();
-            let mut comiendo = Vec::new();
-            let mut transiciones = Vec::new();
-
-            $(
-                empieza.push($empieza);
-                comiendo.push($comiendo);
-            )*
-            for aux in &comiendo {
-                empieza.push(val);
+        let mut v = Vec::new();
+        for n in $start..$end+1 {
+            if $cond(n) {
+                v.push(n);
             }
-            transiciones = empieza
+        }
+        v
         }
     };
 }
+
+macro_rules! compreh2 {
+    ( ($id1: ident, $id2: ident) | $id3: ident <- [ $startx: expr; $endx: expr ] ,
+                                   $id4: ident <- [ $starty: expr; $endy: expr ] ,
+                                   $cond:expr  ) => {
+        {
+        let mut v = Vec::new();
+        for n in $startx..$endx+1 {
+            for m in $starty..$endy+1 {
+                if $cond(n,m) {
+                    v.push((n,m));
+                }
+
+            }
+        }
+        v
+        }
+    };
+} */
+
+use std::collections::HashMap;
 
 macro_rules! arc {
     ($($k:expr => $v:expr),*) => {
@@ -89,77 +39,167 @@ macro_rules! arc {
             let mut map = HashMap::new();
             $(
                 map.insert($k,$v);
-            )
+            )*
             map
         }
     };
 }
 
-macro_rules! matriz_incidencia {
-    ($arc_in:expr,$arc_out:expr,$plazas:expr,$transiciones:expr) => {
-        {
-            let mut matriz[plazas.len()][transiciones.len()];
-            for p in plazas.len()
-                for t in transiciones.len()
-                    matriz[p][t]=0;
-        
+macro_rules! armar_int{
+    ( $id1: ident | $id2: ident <- [ $startx: expr; $endx: expr ] , $id3:expr  ) => {
+    {
+        let mut grid1 = [[0; 8] ; 12];
+        for n in $startx..$endx+1 {
+            for i in 0..$id3.get(&n).unwrap().len(){
+                grid1[n][$id3.get(&n).unwrap()[i]]=1;
+            }
+        }
+        grid1
+    }
+    };
+}
+
+macro_rules! armar_out{
+    ( $id1: ident | $id2: ident <- [ $startx: expr; $endx: expr ] , $id3:expr  ) => {
+    {
+        let mut grid1 = [[0 ; 8] ; 12];
+        for n in $startx..$endx+1 {
+            for i in 0..$id3.get(&n).unwrap().len(){
+                grid1[$id3.get(&n).unwrap()[i]][n]=1;
+            }
+        }
+        grid1
+    }
+    };
+}
+
+macro_rules! matriz_incidencia{
+    ( $id1: ident , $id2: ident) => {
+    {
+        let mut grid1 = [[0 ; 8] ; 12];
+        for n in 0..8 {
+            for i in 0..12{
+                grid1[i][n]=$id1[i][n]-$id2[i][n];
+            }
+        }
+        grid1
+    }
+    };
+}
+
+macro_rules! trans_hab{
+    ( $id1: ident , $id2: ident) => {
+    {
+        let mut grid1 = [true ; 8];
+        for n in 0..8 {
+            for i in 0..12{
+                if($id1[i][n]==-1){
+                    if($id2[i]!=1){
+                        grid1[n]=false;
+                    }
+                };
+            }
+        }
+        grid1
+    }
+    };
+}
+/*
+fn fire_empieza_n(transicion: &[u32], trans_hab: &[i32], curr_marc: &[]) {
+    val sensibilizada = false;
+    for i in trans_hab.len() {
+        if trans_hab[i] {
+            for j in transicion.len() {
+                if j == 1 {
+                    sensibilizada=true;
+                    break;
+                }
+            }
         }
     }
+    if sensibilizada {
+        curr_marc +
+    } else {
+        println!("La transición seleccionada no está sensibilizada por lo cuál no se puede disparar");
+    }
+}*/
+
+macro_rules! inner_prod {
+    ($mat_inc: ident, $vec: ident) => {
+        {
+            let mut resultado = [[0 ; 8] ; 12];
+            for i in 0..12 {
+                let mut elemento = 0;
+                for j in 0..8 {
+                    elemento += $mat_inc[i][j] * $vec[i];
+                    resultado[i][j] = elemento;
+                }
+            }
+            resultado
+        }
+    };
 }
 
-/*
-macro_rules! init {
-
-}
-
-fn empiezan() {
-
-}
-
-fn cualquiera() {
-
-}
-
-fn todas() {
-
-}
-
-fn marcas() -> Vec<i32> {
-
-}
-
-fn habilitadas() -> Vec<trans> {
-
-}
-*/
 fn main() {
-    let arc_int = arc!(  
-        0   => vec![0,4],
-        1   => vec![1],
-        2   => vec![0],
-        3   => vec![0,6],
-        4   => vec![4],
-        5   => vec![5],
-        6   => vec![7],
-        7   => vec![6],
-        8   => vec![6,2],
-        9   => vec![3],
-        10  => vec![2],
-        11  => vec![4,2]
-    );
 
-    let arc_out = arc!( 
-            0   => vec![1],
-            1   => vec![0,2,3],
-            2   => vec![9],
-            3   => vec![8,10,11],
-            4   => vec![5],
-            5   => vec![0,5,11],
-            6   => vec![6],
-            7   => vec![3,8,7]
-        );
+    /* println!("Hello, world!");
+    let v = compreh!(x | x <- [1;10],mayor5);
+    let w = compreh2!( (x,y) | x <- [1;10],y <-[1;10],mayory);
+    println!("{:?}",v);
+    println!("{:?}",w); */
 
-    println!("{:?}",arc_int.get(&11).unwrap());
-    println!("{:?}",arc_out.get(&1).unwrap());
-    
+    let arc_int = arc!( 0   => vec![0,4],
+                        1   => vec![1],
+                        2   => vec![0],
+                        3   => vec![0,6],
+                        4   => vec![4],
+                        5   => vec![5],
+                        6   => vec![7],
+                        7   => vec![6],
+                        8   => vec![6,2],
+                        9   => vec![3],
+                        10  => vec![2],
+                        11  => vec![4,2]
+                    );
+    let arc_out = arc!( 0   => vec![1],
+                        1   => vec![0,2,3],
+                        2   => vec![9],
+                        3   => vec![8,10,11],
+                        4   => vec![5],
+                        5   => vec![0,4,11],
+                        6   => vec![6],
+                        7   => vec![3,8,7]
+                    );
+
+    //println!("{:?}",arc_int.get(&11).unwrap());
+    //println!("{:?}",arc_out.get(&1).unwrap());
+    //println!("{:?}",grid);
+    //let mut grid1 = [0 as u8; 15];
+
+    let mat_int = armar_int!(x | x <- [0;11],arc_int);
+    let mat_out = armar_out!(y | y <- [0;7],arc_out);
+    println!("Matriz de entradas:");
+    for i in 0..12{
+        println!("{:?}",mat_int[i]);
+    }
+    println!("Matriz de salidas:");
+    for i in 0..12{
+        println!("{:?}",mat_out[i]);
+    }
+    let mat_inc = matriz_incidencia!(mat_out,mat_int);
+    println!("Matriz de Incidencia:");
+    for i in 0..12{
+        println!("{:?}",mat_inc[i]);
+    }
+    let mut marc=[1,0,1,1,1,0,0,1,1,0,1,1];
+
+    let mut trans_hab= trans_hab!(mat_inc,marc);
+    println!("{:?}",trans_hab);
+
+    let vect = [0,1,0,0,0,0,0];
+    let prod_in = inner_prod!(mat_inc, vect);
+    println!("m1:");
+    for i in 0..12{
+        println!("{:?}",prod_in[i]);
+    }
 }
